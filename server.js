@@ -11,8 +11,10 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Routes
-const expenseRoutes = require('./routes/expenses');
-app.use('/api/expenses', expenseRoutes);
+const accountRoutes = require('./routes/accounts');
+const transactionRoutes = require('./routes/transactions');
+app.use('/api/accounts', accountRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)

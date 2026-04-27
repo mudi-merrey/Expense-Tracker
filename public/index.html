@@ -30,6 +30,12 @@
         <option value="Other">Other</option>
       </select>
       <button onclick="addExpense()">Add Expense</button>
+
+      <div class="import-box">
+        <h3>Import from CSV</h3>
+        <input type="file" id="csvFile" accept=".csv, .txt">
+        <button onclick="importCSV()">Import</button>
+      </div>
     </div>
 
     <!-- List of expenses -->
