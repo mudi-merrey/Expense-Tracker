@@ -3,46 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Expense Tracker</title>
+  <title>Finance Tracker</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <div class="container">
-    <h1>Expense Tracker</h1>
+    <h1>Finance Tracker</h1>
 
-    <!-- Total -->
-    <div class="total-box">
-      <h2>Total Spent</h2>
-      <p id="total">RM 0.00</p>
-    </div>
-
-    <!-- Form to add expense -->
-    <div class="form-box">
-      <h3>Add New Expense</h3>
-      <input type="text" id="description" placeholder="Description (e.g. Lunch)">
-      <input type="number" id="amount" placeholder="Amount (e.g. 15)">
-      <select id="category">
-        <option value="Food">Food</option>
-        <option value="Transport">Transport</option>
-        <option value="Entertainment">Entertainment</option>
-        <option value="Shopping">Shopping</option>
-        <option value="Other">Other</option>
-      </select>
-      <button onclick="addExpense()">Add Expense</button>
-
-      <div class="import-box">
-        <h3>Import from CSV</h3>
-        <input type="file" id="csvFile" accept=".csv, .txt">
-        <button onclick="importCSV()">Import</button>
+    <!-- Summary Bar -->
+    <div class="summary-bar">
+      <div class="summary-item">
+        <p>Total Balance</p>
+        <h2 id="total-balance">RM 0.00</h2>
+      </div>
+      <div class="summary-item income">
+        <p>Total Income</p>
+        <h2 id="total-income">RM 0.00</h2>
+      </div>
+      <div class="summary-item expense">
+        <p>Total Expenses</p>
+        <h2 id="total-expenses">RM 0.00</h2>
       </div>
     </div>
 
-    <!-- List of expenses -->
-    <div class="list-box">
-      <h3>My Expenses</h3>
-      <ul id="expense-list"></ul>
+    <!-- Accounts Section -->
+    <div class="section">
+      <div class="section-header">
+        <h3>Accounts</h3>
+        <button onclick="toggleAddAccount()">+ Add Account</button>
+      </div>
+
+      <!-- Add Account Form (hidden by default) -->
+      <div class="form-box" id="account-form" style="display:none;">
+        <input type="text" id="account-name" placeholder="Account Name (e.g. Maybank)">
+        <select id="account-type">
+          <option value="Cash">Cash</option>
+          <option value="Bank">Bank</option>
+          <option value="Card">Card</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="number" id="account-balance" placeholder="Opening Balance (e.g. 500)">
+        <button onclick="addAccount()">Save Account</button>
+      </div>
+
+      <!-- Accounts List -->
+      <div id="accounts-list" class="accounts-list"></div>
     </div>
+
+    <!-- Transactions Section -->
+    <div class="section">
+      <div class="section-header">
+        <h3>Transactions</h3>
+        <button onclick="toggleAddTransaction()">+ Add Transaction</button>
+      </div>
+
+      <!-- Add Transaction Form (hidden by default) -->
+      <div class="form-box" id="transaction-form" style="display:none;">
+        <select id="transaction-type" onchange="handleTypeChange()">
+          <option value="Expense">Expense</option>
+          <option value="Income">Income</option>
+          <option value="Transfer">Transfer</option>
+        </select>
+
+        <input type="number" id="transaction-amount" placeholder="Amount">
+        <input type="text" id="transaction-description" placeholder="Description (optional)">
+        <input type="datetime-local" id="transaction-date">
+
+        <!-- Category (hidden for Transfer) -->
+        <select id="transaction-category" >
+          <option value="Food">Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Health">Health</option>
+          <option value="Education">Education</option>
+          <option value="Salary">Salary</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <!-- Account (for Expense and Income) -->
+        <select id="transaction-account" >
+          <!-- filled dynamically -->
+        </select>
+
+        <!-- From and To Account (for Transfer only, hidden by default) -->
+        <select id="transaction-from-account" style="display:none;">
+          <!-- filled dynamically -->
+        </select>
+        <select id="transaction-to-account" style="display:none;">
+          <!-- filled dynamically -->
+        </select>
+
+        <button onclick="addTransaction()">Save Transaction</button>
+      </div>
+
+      <!-- Transactions List -->
+      <ul id="transactions-list"></ul>
+    </div>
+
   </div>
 
   <script src="app.js"></script>
