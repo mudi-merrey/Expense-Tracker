@@ -46,6 +46,17 @@ router.post('/', async (req, res) => {
   }
 });
 
+// DELETE all transactions - MUST be before /:id route
+router.delete('/deleteall', async (req, res) => {
+  try {
+    await Transaction.deleteMany({});
+    res.json({ message: 'All transactions deleted' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
 // DELETE a transaction
 router.delete('/:id', async (req, res) => {
   try {
@@ -66,5 +77,4 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
-
 module.exports = router;

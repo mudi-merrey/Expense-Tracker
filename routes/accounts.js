@@ -38,6 +38,16 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Reset all account balances to 0
+router.patch('/resetall', async (req, res) => {
+  try {
+    await Account.updateMany({}, { balance: 0 });
+    res.json({ message: 'All balances reset' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PATCH rename account
 router.patch('/:id', async (req, res) => {
   try {
@@ -51,5 +61,21 @@ router.patch('/:id', async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+
+// PATCH update account balance
+router.patch('/:id/balance', async (req, res) => {
+  try {
+    const account = await Account.findByIdAndUpdate(
+      req.params.id,
+      { balance: req.body.balance },
+      { new: true }
+    );
+    res.json(account);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+
 
 module.exports = router;
