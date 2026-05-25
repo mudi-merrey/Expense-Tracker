@@ -277,9 +277,9 @@ async function loadTransactions(accounts) {
 
   const pagination = document.getElementById("pagination");
   pagination.innerHTML = `
-    <button onclick="changeMonth(-1)">← Prev</button>
-    <span>${monthNames[currentMonth - 1]} ${currentYear}</span>
-    <button onclick="changeMonth(1)">Next →</button>
+    <button onclick="changeMonth(1)">▲ Next</button>
+    <span>${monthNames[currentMonth - 1]}<br>${currentYear}</span>
+    <button onclick="changeMonth(-1)">▼ Prev</button>
   `;
 }
 
@@ -638,7 +638,22 @@ async function saveEditTransaction(id) {
     body: JSON.stringify(body),
   });
 
-loadAll();
+  loadAll();
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  const btn = document.getElementById('dark-mode-btn');
+  const isDark = document.body.classList.contains('dark');
+  btn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+  localStorage.setItem('darkMode', isDark);
+  setTimeout(() => loadCharts(), 50);
+}
+
+// Load dark mode preference on startup
+if (localStorage.getItem("darkMode") === "true") {
+  document.body.classList.add("dark");
+  document.getElementById("dark-mode-btn").textContent = "☀️ Light Mode";
 }
 
 // ==================
@@ -656,8 +671,7 @@ async function loadCharts() {
   const categoryTotals = {};
   transactions.forEach((t) => {
     if (t.type === "Expense") {
-      categoryTotals[t.category] =
-        (categoryTotals[t.category] || 0) + t.amount;
+      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
     }
   });
 
@@ -696,7 +710,13 @@ async function loadCharts() {
       plugins: {
         legend: {
           position: "bottom",
-          labels: { padding: 15, font: { size: 12 } },
+          labels: {
+            padding: 15,
+            font: { size: 12 },
+            color: document.body.classList.contains("dark")
+              ? "#e0e0e0"
+              : "#333",
+          },
         },
       },
     },
@@ -770,13 +790,40 @@ async function loadCharts() {
     options: {
       responsive: true,
       plugins: {
-        legend: { position: "bottom" },
+        legend: {
+          position: "bottom",
+          labels: {
+            color: document.body.classList.contains("dark")
+              ? "#e0e0e0"
+              : "#333",
+          },
+        },
       },
       scales: {
         y: {
           beginAtZero: true,
           ticks: {
+            color: document.body.classList.contains("dark")
+              ? "#e0e0e0"
+              : "#333",
             callback: (value) => `RM ${value}`,
+          },
+          grid: {
+            color: document.body.classList.contains("dark")
+              ? "#444"
+              : "#e0e0e0",
+          },
+        },
+        x: {
+          ticks: {
+            color: document.body.classList.contains("dark")
+              ? "#e0e0e0"
+              : "#333",
+          },
+          grid: {
+            color: document.body.classList.contains("dark")
+              ? "#444"
+              : "#e0e0e0",
           },
         },
       },
