@@ -1,4 +1,12 @@
 const API = "http://localhost:5000/api";
+const now = new Date();
+let currentMonth = now.getMonth() + 1;
+let currentYear = now.getFullYear();
+let filterType = "";
+let filterCategory = "";
+let filterAccount = "";
+let categoryChart = null;
+let monthlyChart = null;
 
 // ==================
 // UTILITY FUNCTIONS
@@ -109,6 +117,10 @@ async function loadAccounts() {
   fromSelect.innerHTML = options;
   toSelect.innerHTML = options;
 
+  const filterAccountSelect = document.getElementById("filter-account");
+  filterAccountSelect.innerHTML =
+    '<option value="">All Accounts</option>' + options;
+
   return accounts;
 }
 
@@ -147,10 +159,14 @@ async function deleteAccount(id) {
 // ==================
 
 async function loadTransactions(accounts) {
-  const res = await fetch(`${API}/transactions`);
+  let url = `${API}/transactions?month=${currentMonth}&year=${currentYear}`;
+  if (filterType) url += `&type=${filterType}`;
+  if (filterCategory) url += `&category=${filterCategory}`;
+  if (filterAccount) url += `&account=${filterAccount}`;
+  const res = await fetch(url);
   const transactions = await res.json();
 
-  // Update summary
+  // Update summary for current month
   let totalIncome = 0;
   let totalExpenses = 0;
 
@@ -182,6 +198,11 @@ async function loadTransactions(accounts) {
       accountText = t.account?.name;
     }
 
+    const accountId = t.account?._id || "";
+    const fromAccountId = t.fromAccount?._id || "";
+    const toAccountId = t.toAccount?._id || "";
+    const dateValue = new Date(t.date).toISOString().slice(0, 16);
+
     li.innerHTML = `
       <div class="transaction-info">
         <h4>${t.description || t.category || t.type}</h4>
@@ -191,11 +212,93 @@ async function loadTransactions(accounts) {
         <span class="transaction-amount ${t.type.toLowerCase()}">
           ${t.type === "Expense" ? "-" : t.type === "Income" ? "+" : ""}${formatMoney(t.amount)}
         </span>
+        <button onclick="toggleEditTransaction('${t._id}')">✏️</button>
         <button onclick="deleteTransaction('${t._id}')">✕</button>
+      </div>
+      <div id="edit-form-${t._id}" style="display:none; width:100%; margin-top:10px;">
+        <select id="edit-type-${t._id}" onchange="handleEditTypeChange('${t._id}')">
+          <option value="Expense" ${t.type === "Expense" ? "selected" : ""}>Expense</option>
+          <option value="Income" ${t.type === "Income" ? "selected" : ""}>Income</option>
+          <option value="Transfer" ${t.type === "Transfer" ? "selected" : ""}>Transfer</option>
+        </select>
+        <input type="number" id="edit-amount-${t._id}" value="${t.amount}">
+        <input type="text" id="edit-description-${t._id}" value="${t.description || ""}">
+        <input type="datetime-local" id="edit-date-${t._id}" value="${dateValue}">
+        <select id="edit-category-${t._id}" style="${t.type === "Transfer" ? "display:none" : ""}">
+          ${[
+            "Food",
+            "Transport",
+            "Entertainment",
+            "Shopping",
+            "Health",
+            "Education",
+            "Salary",
+            "Other",
+          ]
+            .map(
+              (c) =>
+                `<option value="${c}" ${t.category === c ? "selected" : ""}>${c}</option>`,
+            )
+            .join("")}
+        </select>
+        <select id="edit-account-${t._id}" style="${t.type === "Transfer" ? "display:none" : ""}">
+          ${accounts.map((a) => `<option value="${a._id}" ${a._id == accountId ? "selected" : ""}>${a.name}</option>`).join("")}
+        </select>
+        <select id="edit-from-${t._id}" style="${t.type !== "Transfer" ? "display:none" : ""}">
+          ${accounts.map((a) => `<option value="${a._id}" ${a._id == fromAccountId ? "selected" : ""}>${a.name}</option>`).join("")}
+        </select>
+        <select id="edit-to-${t._id}" style="${t.type !== "Transfer" ? "display:none" : ""}">
+          ${accounts.map((a) => `<option value="${a._id}" ${a._id == toAccountId ? "selected" : ""}>${a.name}</option>`).join("")}
+        </select>
+        <div style="display:flex; gap:8px; margin-top:5px;">
+          <button onclick="saveEditTransaction('${t._id}')" style="background:#10b981;">Save</button>
+          <button onclick="toggleEditTransaction('${t._id}')" style="background:#888;">Cancel</button>
+        </div>
       </div>
     `;
     list.appendChild(li);
   });
+
+  // Render month navigation
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const pagination = document.getElementById("pagination");
+  pagination.innerHTML = `
+    <button onclick="changeMonth(-1)">← Prev</button>
+    <span>${monthNames[currentMonth - 1]} ${currentYear}</span>
+    <button onclick="changeMonth(1)">Next →</button>
+  `;
+}
+
+function changeMonth(direction) {
+  currentMonth += direction;
+  if (currentMonth > 12) {
+    currentMonth = 1;
+    currentYear++;
+  }
+  if (currentMonth < 1) {
+    currentMonth = 12;
+    currentYear--;
+  }
+  loadAll();
+}
+
+function changePage(direction) {
+  currentPage += direction;
+  loadAll();
 }
 
 async function addTransaction() {
@@ -266,15 +369,6 @@ async function renameAccount(id) {
 }
 
 // ==================
-// LOAD EVERYTHING
-// ==================
-
-async function loadAll() {
-  const accounts = await loadAccounts();
-  await loadTransactions(accounts);
-}
-
-// ==================
 // IMPORT CSV
 // ==================
 
@@ -292,11 +386,11 @@ async function importCSV() {
     return;
   }
 
-    const text = await file.text();
+  const text = await file.text();
 
   // Smart line splitter that handles newlines inside quoted fields
   const lines = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
 
   for (let i = 0; i < text.length; i++) {
@@ -304,9 +398,9 @@ async function importCSV() {
     if (char === '"') {
       inQuotes = !inQuotes;
       current += char;
-    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
       if (current.trim()) lines.push(current.trim());
-      current = '';
+      current = "";
     } else {
       current += char;
     }
@@ -346,16 +440,16 @@ async function importCSV() {
 
     // Parse CSV line handling quoted fields properly
     const cols = [];
-    let current = '';
+    let current = "";
     let inQuotes = false;
 
     for (let j = 0; j < line.length; j++) {
       const char = line[j];
       if (char === '"') {
         inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
+      } else if (char === "," && !inQuotes) {
         cols.push(current.trim());
-        current = '';
+        current = "";
       } else {
         current += char;
       }
@@ -454,6 +548,10 @@ async function importCSV() {
   loadAll();
 }
 
+// ==================
+// EVERYTHING ELSE
+// ==================
+
 async function deleteAllTransactions() {
   if (
     !confirm(
@@ -479,6 +577,221 @@ async function updateBalance(id) {
     body: JSON.stringify({ balance: newBalance }),
   });
   loadAll();
+}
+
+function applyFilters() {
+  filterType = document.getElementById("filter-type").value;
+  filterCategory = document.getElementById("filter-category").value;
+  filterAccount = document.getElementById("filter-account").value;
+  loadAll();
+}
+
+function clearFilters() {
+  filterType = "";
+  filterCategory = "";
+  filterAccount = "";
+  document.getElementById("filter-type").value = "";
+  document.getElementById("filter-category").value = "";
+  document.getElementById("filter-account").value = "";
+  loadAll();
+}
+
+function toggleEditTransaction(id) {
+  const form = document.getElementById(`edit-form-${id}`);
+  form.style.display = form.style.display === "none" ? "block" : "none";
+}
+
+function handleEditTypeChange(id) {
+  const type = document.getElementById(`edit-type-${id}`).value;
+  document.getElementById(`edit-category-${id}`).style.display =
+    type === "Transfer" ? "none" : "block";
+  document.getElementById(`edit-account-${id}`).style.display =
+    type === "Transfer" ? "none" : "block";
+  document.getElementById(`edit-from-${id}`).style.display =
+    type === "Transfer" ? "block" : "none";
+  document.getElementById(`edit-to-${id}`).style.display =
+    type === "Transfer" ? "block" : "none";
+}
+
+async function saveEditTransaction(id) {
+  const type = document.getElementById(`edit-type-${id}`).value;
+  const amount = document.getElementById(`edit-amount-${id}`).value;
+  const description = document.getElementById(`edit-description-${id}`).value;
+  const date = document.getElementById(`edit-date-${id}`).value;
+  const category = document.getElementById(`edit-category-${id}`).value;
+  const account = document.getElementById(`edit-account-${id}`).value;
+  const fromAccount = document.getElementById(`edit-from-${id}`).value;
+  const toAccount = document.getElementById(`edit-to-${id}`).value;
+
+  const body = { type, amount, description, date };
+  if (type === "Transfer") {
+    body.fromAccount = fromAccount;
+    body.toAccount = toAccount;
+  } else {
+    body.category = category;
+    body.account = account;
+  }
+
+  await fetch(`${API}/transactions/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+loadAll();
+}
+
+// ==================
+// CHARTS
+// ==================
+
+async function loadCharts() {
+  // Fetch current month transactions for category pie chart
+  const res1 = await fetch(
+    `${API}/transactions?month=${currentMonth}&year=${currentYear}`,
+  );
+  const transactions = await res1.json();
+
+  // Build category data
+  const categoryTotals = {};
+  transactions.forEach((t) => {
+    if (t.type === "Expense") {
+      categoryTotals[t.category] =
+        (categoryTotals[t.category] || 0) + t.amount;
+    }
+  });
+
+  const categoryLabels = Object.keys(categoryTotals);
+  const categoryData = Object.values(categoryTotals);
+  const colors = [
+    "#4f46e5",
+    "#10b981",
+    "#ef4444",
+    "#f59e0b",
+    "#3b82f6",
+    "#8b5cf6",
+    "#ec4899",
+    "#14b8a6",
+  ];
+
+  // Destroy old chart if exists
+  if (categoryChart) categoryChart.destroy();
+
+  const ctx1 = document.getElementById("category-chart").getContext("2d");
+  categoryChart = new Chart(ctx1, {
+    type: "doughnut",
+    data: {
+      labels: categoryLabels,
+      datasets: [
+        {
+          data: categoryData,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: "#fff",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { padding: 15, font: { size: 12 } },
+        },
+      },
+    },
+  });
+
+  // Fetch last 6 months for bar chart
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  const labels = [];
+  const incomeData = [];
+  const expenseData = [];
+
+  for (let i = 5; i >= 0; i--) {
+    let m = currentMonth - i;
+    let y = currentYear;
+    if (m <= 0) {
+      m += 12;
+      y -= 1;
+    }
+
+    const res2 = await fetch(`${API}/transactions?month=${m}&year=${y}`);
+    const monthTransactions = await res2.json();
+
+    let income = 0;
+    let expenses = 0;
+    monthTransactions.forEach((t) => {
+      if (t.type === "Income") income += t.amount;
+      if (t.type === "Expense") expenses += t.amount;
+    });
+
+    labels.push(`${monthNames[m - 1]} ${y}`);
+    incomeData.push(income);
+    expenseData.push(expenses);
+  }
+
+  // Destroy old chart if exists
+  if (monthlyChart) monthlyChart.destroy();
+
+  const ctx2 = document.getElementById("monthly-chart").getContext("2d");
+  monthlyChart = new Chart(ctx2, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Income",
+          data: incomeData,
+          backgroundColor: "#10b981",
+          borderRadius: 6,
+        },
+        {
+          label: "Expenses",
+          data: expenseData,
+          backgroundColor: "#ef4444",
+          borderRadius: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (value) => `RM ${value}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+// ==================
+// LOAD EVERYTHING
+// ==================
+
+async function loadAll() {
+  const accounts = await loadAccounts();
+  await loadTransactions(accounts);
+  await loadCharts();
 }
 
 // Run on page load

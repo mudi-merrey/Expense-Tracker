@@ -249,3 +249,77 @@ input:focus, select:focus {
 .rename-btn:hover {
   color: #4f46e5;
 }
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.month-nav button {
+  width: auto;
+  padding: 6px 12px;
+  background: #f0f2f5;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.month-nav button:hover {
+  background: #e0e0e0;
+}
+
+.month-nav span {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #333;
+  min-width: 130px;
+  text-align: center;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-bar select {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 12px;
+  margin-bottom: 0;
+}
+
+.filter-bar button {
+  width: auto;
+  padding: 8px 14px;
+  background: #f0f2f5;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.filter-bar button:hover {
+  background: #e0e0e0;
+}
+
+.charts-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.chart-box {
+  flex: 1;
+  min-width: 250px;
+}
+
+.chart-box h4 {
+  color: #333;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+}
